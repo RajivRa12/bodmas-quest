@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="BODMAS Quest – An interactive game to master the order of operations. Learn Brackets, Orders, Division, Multiplication, Addition and Subtraction through fun challenges." />
+  <meta name="theme-color" content="#7c3aed" />
+  <link rel="manifest" href="manifest.json" />
+  <title>BODMAS Quest – Master Order of Operations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── Background FX ───────────────────────────────────────── -->
+<canvas id="particle-canvas"></canvas>
+<canvas id="confetti-canvas"></canvas>
+
+<!-- ── Toast notifications ─────────────────────────────────── -->
+<div id="toast-container" role="status" aria-live="polite"></div>
+
+<!-- ── Achievement toast ───────────────────────────────────── -->
+<div id="achievement-toast" class="achievement-toast" aria-live="assertive">
+  <span class="ach-toast-icon" id="ach-toast-icon">🏆</span>
+  <div class="ach-toast-text">
+    <span class="ach-toast-title">Achievement Unlocked!</span>
+    <span class="ach-toast-name" id="ach-toast-name">First Blood</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SCREEN 1 — INTRO / LANDING
+════════════════════════════════════════════════════════════ -->
+<div id="screen-intro" class="screen active">
+  <div class="intro-inner">
+
+    <!-- Top bar -->
+    <div class="intro-topbar">
+      <div class="brand-badge">🎓 Educational Game</div>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="btn-theme" title="Toggle theme" aria-label="Toggle light/dark theme">🌙</button>
+        <button class="icon-btn" id="btn-open-profile" title="Your profile" aria-label="View profile">👤</button>
+        <button class="icon-btn" id="btn-open-achievements" title="Achievements" aria-label="View achievements">🏅</button>
+        <button class="icon-btn" id="btn-open-reference" title="BODMAS reference card" aria-label="Open reference card">📖</button>
+      </div>
+    </div>
+
+    <h1 class="game-title">
+      <span class="title-b">B</span><span class="title-o">O</span><span class="title-d">D</span><span class="title-m">M</span><span class="title-a">A</span><span class="title-s">S</span>
+      <span class="title-quest"> Quest</span>
+    </h1>
+    <p class="intro-subtitle">Master the Order of Operations through interactive challenges</p>
+
+    <!-- BODMAS legend -->
+    <div class="bodmas-legend">
+      <div class="legend-item" data-op="B"><span class="legend-letter">B</span><span class="legend-word">Brackets</span><span class="legend-symbol">( )</span></div>
+      <div class="legend-item" data-op="O"><span class="legend-letter">O</span><span class="legend-word">Orders</span><span class="legend-symbol">x²</span></div>
+      <div class="legend-item" data-op="D"><span class="legend-letter">D</span><span class="legend-word">Division</span><span class="legend-symbol">÷</span></div>
+      <div class="legend-item" data-op="M"><span class="legend-letter">M</span><span class="legend-word">Multiply</span><span class="legend-symbol">×</span></div>
+      <div class="legend-item" data-op="A"><span class="legend-letter">A</span><span class="legend-word">Addition</span><span class="legend-symbol">+</span></div>
+      <div class="legend-item" data-op="S"><span class="legend-letter">S</span><span class="legend-word">Subtraction</span><span class="legend-symbol">−</span></div>
+    </div>
+
+    <!-- Player name input -->
+    <div class="name-input-wrap">
+      <label class="name-label" for="player-name-input">Your Name (for leaderboard)</label>
+      <div class="name-input-row">
+        <span class="name-icon">👤</span>
+        <input type="text" id="player-name-input" class="name-input"
+               placeholder="Enter your name…" maxlength="20"
+               autocomplete="off" spellcheck="false" />
+      </div>
+    </div>
+
+    <!-- Mode picker -->
+    <div class="mode-picker">
+      <p class="picker-label">Game Mode</p>
+      <div class="mode-tabs" role="tablist">
+        <button class="mode-tab active" data-mode="normal"    role="tab" id="btn-mode-normal">
+          <span>⚔️</span> Normal
+        </button>
+        <button class="mode-tab"        data-mode="practice"  role="tab" id="btn-mode-practice">
+          <span>🌱</span> Practice
+        </button>
+        <button class="mode-tab"        data-mode="challenge" role="tab" id="btn-mode-challenge">
+          <span>⏱️</span> Challenge
+        </button>
+      </div>
+      <p class="mode-desc" id="mode-desc">Full game with timer &amp; lives. Score as high as possible!</p>
+    </div>
+
+    <!-- Level picker -->
+    <div class="level-picker">
+      <p class="picker-label">Difficulty</p>
+      <div class="level-buttons">
+        <button class="level-btn active" data-level="easy" id="btn-level-easy">
+          <span class="level-icon">🌱</span>
+          <span class="level-name">Easy</span>
+          <span class="level-desc">2–3 operations</span>
+        </button>
+        <button class="level-btn" data-level="medium" id="btn-level-medium">
+          <span class="level-icon">🔥</span>
+          <span class="level-name">Medium</span>
+          <span class="level-desc">3–4 + brackets</span>
+        </button>
+        <button class="level-btn" data-level="hard" id="btn-level-hard">
+          <span class="level-icon">⚡</span>
+          <span class="level-name">Hard</span>
+          <span class="level-desc">4–5 + powers</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="intro-actions">
+      <button class="cta-btn" id="btn-start-game">
+        <span class="cta-text">Start Quest</span>
+        <span class="cta-arrow">→</span>
+      </button>
+      <button class="cta-btn secondary" id="btn-show-leaderboard">
+        <span class="cta-text">🏆 Leaderboard</span>
+      </button>
+    </div>
+
+    <div class="best-score-display" id="intro-best-score"></div>
+    <div class="server-status" id="server-status"></div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SCREEN 2 — GAME HUD
+════════════════════════════════════════════════════════════ -->
+<div id="screen-game" class="screen">
+
+  <!-- Top HUD -->
+  <header class="game-hud">
+    <div class="hud-left">
+      <button class="icon-btn" id="btn-menu" title="Back to menu" aria-label="Back to menu">⬅</button>
+      <div class="level-badge" id="hud-level-badge">Easy</div>
+      <div class="mode-badge" id="hud-mode-badge"></div>
+    </div>
+    <div class="hud-center">
+      <div class="hud-stat">
+        <span class="hud-label">Score</span>
+        <span class="hud-value" id="hud-score">0</span>
+      </div>
+      <div class="hud-divider"></div>
+      <div class="hud-stat">
+        <span class="hud-label">Question</span>
+        <span class="hud-value"><span id="hud-q-current">1</span>/<span id="hud-q-total">10</span></span>
+      </div>
+    </div>
+    <div class="hud-right">
+      <!-- Normal mode timer -->
+      <div class="timer-ring-wrap" id="timer-wrap" role="timer" aria-label="Time remaining">
+        <svg class="timer-ring" viewBox="0 0 44 44">
+          <circle class="ring-track" cx="22" cy="22" r="18"/>
+          <circle class="ring-fill" id="timer-ring-fill" cx="22" cy="22" r="18"/>
+        </svg>
+        <span class="timer-num" id="hud-timer">30</span>
+      </div>
+      <!-- Challenge mode global timer -->
+      <div class="challenge-timer-wrap" id="challenge-timer-wrap" style="display:none">
+        <span class="challenge-timer-label">TIME</span>
+        <span class="challenge-timer-val" id="challenge-timer-val">60</span>
+      </div>
+      <button class="icon-btn" id="btn-sound" title="Toggle sound" aria-label="Toggle sound">🔊</button>
+      <button class="icon-btn" id="btn-open-reference-game" title="BODMAS reference" aria-label="Open reference">📖</button>
+    </div>
+  </header>
+
+  <!-- Progress bar -->
+  <div class="progress-track" role="progressbar">
+    <div class="progress-fill" id="progress-fill"></div>
+  </div>
+
+  <!-- Lives & streak -->
+  <div class="streak-bar">
+    <div class="lives-block"><span id="lives-display">❤️❤️❤️</span></div>
+    <div class="streak-block">
+      <span class="streak-label">Streak</span>
+      <span class="streak-fire" id="streak-fire">⚡</span>
+      <span class="streak-count" id="streak-count">0</span>
+    </div>
+  </div>
+
+  <!-- Game area -->
+  <main class="game-area">
+
+    <!-- BODMAS reference pill -->
+    <div class="bodmas-pill">
+      <span class="pill-item pill-b">B</span><span class="pill-sep">›</span>
+      <span class="pill-item pill-o">O</span><span class="pill-sep">›</span>
+      <span class="pill-item pill-d">D</span><span class="pill-sep">›</span>
+      <span class="pill-item pill-m">M</span><span class="pill-sep">›</span>
+      <span class="pill-item pill-a">A</span><span class="pill-sep">›</span>
+      <span class="pill-item pill-s">S</span>
+    </div>
+
+    <p class="game-instruction" id="game-instruction">Select which operation to solve <strong>first</strong></p>
+
+    <!-- Expression card -->
+    <div class="expression-card" id="expression-card">
+      <div class="expression-display" id="expression-display"></div>
+      <div class="expression-history" id="expression-history"></div>
+    </div>
+
+    <!-- Answer choices -->
+    <div class="choices-grid" id="choices-grid"></div>
+
+    <!-- Hint button -->
+    <button class="hint-btn" id="btn-hint" title="Use a hint (costs 5 points)">
+      💡 Hint <span class="hint-cost">−5 pts</span>
+    </button>
+
+    <!-- Feedback -->
+    <div class="feedback-panel" id="feedback-panel">
+      <div class="feedback-icon" id="feedback-icon"></div>
+      <div class="feedback-text" id="feedback-text"></div>
+      <div class="feedback-explanation" id="feedback-explanation"></div>
+      <button class="next-btn" id="btn-next">Next Step →</button>
+    </div>
+
+  </main>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SCREEN 3 — RESULTS / GAME OVER
+════════════════════════════════════════════════════════════ -->
+<div id="screen-results" class="screen">
+  <div class="results-inner">
+
+    <div class="results-trophy" id="results-trophy">🏆</div>
+    <h2 class="results-title" id="results-title">Quest Complete!</h2>
+    <p class="results-subtitle" id="results-subtitle">Here's how you did</p>
+
+    <div class="results-stats">
+      <div class="result-stat"><span class="result-stat-value" id="res-score">0</span><span class="result-stat-label">Score</span></div>
+      <div class="result-stat"><span class="result-stat-value" id="res-correct">0</span><span class="result-stat-label">Correct</span></div>
+      <div class="result-stat"><span class="result-stat-value" id="res-accuracy">0%</span><span class="result-stat-label">Accuracy</span></div>
+      <div class="result-stat"><span class="result-stat-value" id="res-streak">0</span><span class="result-stat-label">Best Streak</span></div>
+    </div>
+
+    <div class="rank-card" id="rank-card">
+      <span class="rank-icon" id="rank-icon">🥇</span>
+      <div class="rank-info">
+        <span class="rank-title" id="rank-title">Master</span>
+        <span class="rank-desc" id="rank-desc">Outstanding!</span>
+      </div>
+    </div>
+
+    <div class="best-score-note" id="new-best-banner">🎉 New Best Score!</div>
+    <div class="server-rank-badge" id="server-rank-badge"></div>
+
+    <!-- Score submit section -->
+    <div class="submit-score-section" id="submit-score-section">
+      <div class="submit-name-row">
+        <span class="submit-name-label">Submitting as:</span>
+        <span class="submit-name-val" id="submit-name-val">Anonymous</span>
+      </div>
+      <div class="submit-status" id="submit-status">
+        <span>⏳ Saving to leaderboard…</span>
+      </div>
+    </div>
+
+    <div class="results-actions">
+      <button class="cta-btn secondary small" id="btn-review-wrong" style="display:none">
+        <span class="cta-text">📋 Review Mistakes</span>
+      </button>
+      <button class="cta-btn secondary small" id="btn-results-leaderboard">
+        <span class="cta-text">🏆 Leaderboard</span>
+      </button>
+    </div>
+    <div class="results-actions" style="margin-top:0">
+      <button class="cta-btn secondary" id="btn-retry">
+        <span class="cta-text">Play Again</span>
+      </button>
+      <button class="cta-btn" id="btn-back-menu">
+        <span class="cta-text">Main Menu 🏠</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SCREEN 4 — LEADERBOARD
+════════════════════════════════════════════════════════════ -->
+<div id="screen-leaderboard" class="screen">
+  <div class="leaderboard-inner">
+    <button class="back-btn" id="btn-leaderboard-back">← Back</button>
+    <h2 class="lb-title">🏆 Leaderboard</h2>
+    <p class="lb-subtitle">Top scores from all players</p>
+    <div class="lb-tabs" role="tablist">
+      <button class="lb-tab active" data-level="easy"   role="tab" aria-selected="true">🌱 Easy</button>
+      <button class="lb-tab"        data-level="medium" role="tab">🔥 Medium</button>
+      <button class="lb-tab"        data-level="hard"   role="tab">⚡ Hard</button>
+    </div>
+    <div class="lb-offline-notice" id="lb-offline-notice">
+      📡 Running in offline mode. Start the PHP server to see global scores.
+    </div>
+    <div class="lb-list-wrap">
+      <div class="lb-list" id="lb-list" role="table" aria-label="Leaderboard"></div>
+      <div class="lb-loading" id="lb-loading">Loading…</div>
+      <div class="lb-empty"   id="lb-empty"  style="display:none">No scores yet. Be the first!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SCREEN 5 — ACHIEVEMENTS
+════════════════════════════════════════════════════════════ -->
+<div id="screen-achievements" class="screen">
+  <div class="achievements-inner">
+    <button class="back-btn" id="btn-achievements-back">← Back</button>
+    <h2 class="lb-title">🏅 Achievements</h2>
+    <p class="lb-subtitle"><span id="ach-count">0</span> / <span id="ach-total">14</span> unlocked</p>
+
+    <!-- Progress bar -->
+    <div class="ach-progress-track">
+      <div class="ach-progress-fill" id="ach-progress-fill"></div>
+    </div>
+
+    <div class="ach-grid" id="ach-grid" role="list">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     SCREEN 6 — PLAYER PROFILE / STATS
+════════════════════════════════════════════════════════════ -->
+<div id="screen-profile" class="screen">
+  <div class="profile-inner">
+    <button class="back-btn" id="btn-profile-back">← Back</button>
+
+    <div class="profile-avatar">
+      <span id="profile-avatar-emoji">🧑‍💻</span>
+    </div>
+    <h2 class="profile-name" id="profile-name-display">Player</h2>
+    <p class="profile-joined" id="profile-joined"></p>
+
+    <!-- Overall stats -->
+    <div class="profile-stats-grid">
+      <div class="profile-stat">
+        <span class="profile-stat-val" id="pstat-games">0</span>
+        <span class="profile-stat-label">Games Played</span>
+      </div>
+      <div class="profile-stat">
+        <span class="profile-stat-val" id="pstat-correct">0</span>
+        <span class="profile-stat-label">Correct Answers</span>
+      </div>
+      <div class="profile-stat">
+        <span class="profile-stat-val" id="pstat-accuracy">0%</span>
+        <span class="profile-stat-label">Overall Accuracy</span>
+      </div>
+      <div class="profile-stat">
+        <span class="profile-stat-val" id="pstat-avg-score">0</span>
+        <span class="profile-stat-label">Avg Score</span>
+      </div>
+      <div class="profile-stat">
+        <span class="profile-stat-val" id="pstat-achievements">0/14</span>
+        <span class="profile-stat-label">Achievements</span>
+      </div>
+      <div class="profile-stat">
+        <span class="profile-stat-val" id="pstat-hints">0</span>
+        <span class="profile-stat-label">Hints Used</span>
+      </div>
+    </div>
+
+    <!-- Per-level best -->
+    <h3 class="profile-section-title">Best Scores by Level</h3>
+    <div class="profile-levels">
+      <div class="profile-level-row">
+        <span class="profile-level-icon">🌱</span>
+        <div class="profile-level-info">
+          <span class="profile-level-name">Easy</span>
+          <div class="profile-level-bar-wrap"><div class="profile-level-bar" id="pbar-easy"></div></div>
+        </div>
+        <span class="profile-level-score" id="plv-easy">—</span>
+      </div>
+      <div class="profile-level-row">
+        <span class="profile-level-icon">🔥</span>
+        <div class="profile-level-info">
+          <span class="profile-level-name">Medium</span>
+          <div class="profile-level-bar-wrap"><div class="profile-level-bar" id="pbar-medium"></div></div>
+        </div>
+        <span class="profile-level-score" id="plv-medium">—</span>
+      </div>
+      <div class="profile-level-row">
+        <span class="profile-level-icon">⚡</span>
+        <div class="profile-level-info">
+          <span class="profile-level-name">Hard</span>
+          <div class="profile-level-bar-wrap"><div class="profile-level-bar" id="pbar-hard"></div></div>
+        </div>
+        <span class="profile-level-score" id="plv-hard">—</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     MODAL — BODMAS REFERENCE CARD
+════════════════════════════════════════════════════════════ -->
+<div id="modal-reference" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="ref-modal-title">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="ref-modal-title">📖 BODMAS Reference Card</h3>
+      <button class="modal-close" id="btn-close-reference" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-intro">Always apply these rules <strong>in order</strong> — higher tiers must be solved first!</p>
+      <div class="ref-grid">
+        <div class="ref-row ref-b">
+          <span class="ref-letter">B</span>
+          <div class="ref-info">
+            <strong>Brackets</strong> — ( )
+            <span>Solve everything inside brackets first, regardless of what operators are inside.</span>
+            <code>2 × (3 + 4) = 2 × 7 = 14</code>
+          </div>
+        </div>
+        <div class="ref-row ref-o">
+          <span class="ref-letter">O</span>
+          <div class="ref-info">
+            <strong>Orders</strong> — Powers &amp; Roots
+            <span>After brackets, evaluate any exponents (powers/squares/cubes).</span>
+            <code>2 + 3² = 2 + 9 = 11</code>
+          </div>
+        </div>
+        <div class="ref-row ref-d">
+          <span class="ref-letter">D</span>
+          <div class="ref-info">
+            <strong>Division ÷</strong>
+            <span>Division and Multiplication have equal priority. Solve left to right.</span>
+            <code>12 ÷ 3 × 2 → first 12÷3=4, then 4×2=8</code>
+          </div>
+        </div>
+        <div class="ref-row ref-m">
+          <span class="ref-letter">M</span>
+          <div class="ref-info">
+            <strong>Multiplication ×</strong>
+            <span>Same priority as division. When both appear, work left to right.</span>
+            <code>4 + 3 × 2 → first 3×2=6, then 4+6=10</code>
+          </div>
+        </div>
+        <div class="ref-row ref-a">
+          <span class="ref-letter">A</span>
+          <div class="ref-info">
+            <strong>Addition +</strong>
+            <span>Addition and Subtraction have equal priority. Solve left to right.</span>
+            <code>10 − 3 + 2 → first 10−3=7, then 7+2=9</code>
+          </div>
+        </div>
+        <div class="ref-row ref-s">
+          <span class="ref-letter">S</span>
+          <div class="ref-info">
+            <strong>Subtraction −</strong>
+            <span>Last priority (tied with Addition). Always apply left to right.</span>
+            <code>8 + 2 × 5 → first 2×5=10, then 8+10=18</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="ref-tip">
+        💡 <strong>Memory tip:</strong> <em>"Brackets Over Division &amp; Multiplication, Addition &amp; Subtraction"</em>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     MODAL — WRONG ANSWER REVIEW
+════════════════════════════════════════════════════════════ -->
+<div id="modal-review" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
+  <div class="modal-card modal-review-card">
+    <div class="modal-header">
+      <h3 id="review-modal-title">📋 Mistakes to Review</h3>
+      <button class="modal-close" id="btn-close-review" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body" id="review-body">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- ── Scripts ──────────────────────────────────────────────── -->
+<script src="js/audio.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/confetti.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/achievements.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/questions.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+
+</body>
+</html>

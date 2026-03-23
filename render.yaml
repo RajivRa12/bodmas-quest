@@ -1,0 +1,10 @@
+# BODMAS Quest — Render.com deployment config
+services:
+  - type: web
+    name: bodmas-quest
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PHP_MEMORY_LIMIT
+        value: 128M
