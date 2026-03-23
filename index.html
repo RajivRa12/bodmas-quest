@@ -278,7 +278,12 @@
       <button class="cta-btn secondary" id="btn-retry">
         <span class="cta-text">Play Again</span>
       </button>
-      <button class="cta-btn" id="btn-back-menu">
+      <button class="cta-btn" id="btn-share">
+        <span class="cta-text">📣 Share Result</span>
+      </button>
+    </div>
+    <div class="results-actions" style="margin-top:0">
+      <button class="cta-btn ghost" id="btn-back-menu">
         <span class="cta-text">Main Menu 🏠</span>
       </button>
     </div>
@@ -341,6 +346,26 @@
       <span id="profile-avatar-emoji">🧑‍💻</span>
     </div>
     <h2 class="profile-name" id="profile-name-display">Player</h2>
+    
+    <!-- Rank Badge -->
+    <div class="profile-rank-badge">
+       <span id="profile-rank-icon">🌱</span>
+       <span id="profile-rank-name">Novice</span>
+       <span class="profile-level-num">Lvl <span id="profile-level-val">1</span></span>
+    </div>
+
+    <!-- XP Progress bar -->
+    <div class="xp-bar-container">
+      <div class="xp-bar-label">
+        <span>Experience</span>
+        <span id="profile-xp-val">0 / 250 XP</span>
+      </div>
+      <div class="xp-bar-track">
+        <div class="xp-bar-fill" id="profile-xp-fill" style="width: 0%"></div>
+      </div>
+      <p class="xp-next-rank" id="profile-next-rank">Next Rank: Student (at 250 XP)</p>
+    </div>
+
     <p class="profile-joined" id="profile-joined"></p>
 
     <!-- Overall stats -->

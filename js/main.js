@@ -17,7 +17,7 @@
   let selectedLevel = 'easy';
   let selectedMode  = 'normal';
   let leaderboardLevel = 'easy';
-  let previousScreen = 'intro'; // for back-from-modal
+  let previousScreen = 'intro';
 
   /* ════════════════════════════════════════════════════════════════
      THEME TOGGLE
@@ -84,7 +84,6 @@
   const savedName = Storage.getPlayerName();
   if (savedName) UI.el.playerNameInput.value = savedName;
 
-  // Sound pref
   if (!Storage.getSoundPref()) { AudioEngine.toggleMute(); UI.setSoundBtn(true); }
   UI.el.btnSound.addEventListener('click', () => {
     const nowMuted = AudioEngine.toggleMute();
@@ -93,7 +92,6 @@
     if (!nowMuted) AudioEngine.play('click');
   });
 
-  // Level selection
   UI.el.levelBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       UI.el.levelBtns.forEach(b => b.classList.remove('active'));
@@ -103,7 +101,6 @@
     });
   });
 
-  // Mode selection
   const MODE_DESCS = {
     normal:    'Full game with timer & lives. Score as high as possible!',
     practice:  'No timer, no lives — learn BODMAS at your own pace.',
@@ -120,25 +117,21 @@
     });
   });
 
-  // Start game
   UI.el.BtnStart.addEventListener('click', () => {
     const name = UI.el.playerNameInput.value.trim();
     if (name) Storage.setPlayerName(name);
     AudioEngine.play('click');
-    Achievements.check({ type: 'session_start' }, {});
     startGame(selectedLevel, selectedMode);
   });
 
-  // Intro leaderboard
   UI.el.btnShowLeaderboard.addEventListener('click', () => { AudioEngine.play('click'); openLeaderboard('easy'); });
 
   /* ════════════════════════════════════════════════════════════════
-     NAVIGATION — HUD & RESULTS
+     NAVIGATION
   ════════════════════════════════════════════════════════════════ */
   UI.el.btnMenu.addEventListener('click', () => {
     AudioEngine.play('click');
     GameEngine.stopTimer();
-    GameEngine.stopChallengeTimer && GameEngine.stopChallengeTimer();
     UI.showIntroBestScores();
     UI.showScreen('intro');
   });
@@ -156,14 +149,43 @@
 
   UI.el.btnResultsLB.addEventListener('click', () => { AudioEngine.play('click'); openLeaderboard(selectedLevel); });
 
-  // Wrong answer review
   document.getElementById('btn-review-wrong').addEventListener('click', () => {
     AudioEngine.play('click');
     openWrongAnswerReview(GameEngine.getWrongAnswers());
   });
 
+  // Haptics
+  function vibrate(pattern = [50]) {
+    if ('vibrate' in navigator) navigator.vibrate(pattern);
+  }
+
+  // Social Share
+  document.getElementById('btn-share').addEventListener('click', () => {
+    const res = GameEngine.getState().results;
+    if (!res) return;
+    const rank = Profile.getRankDetails();
+    const text = `🎮 I just scored ${res.score} points on BODMAS Quest! 🏆\n` +
+                 `Rank: ${rank.icon} ${rank.name} (Lvl ${rank.level})\n` +
+                 `Accuracy: ${res.accuracy}%\n` +
+                 `Mode: ${selectedMode.toUpperCase()}\n` +
+                 `Try to beat me here: ${window.location.href}`;
+    
+    if (navigator.share) {
+      navigator.share({ title: 'BODMAS Quest Result', text }).catch(() => copyToClipboard(text));
+    } else {
+      copyToClipboard(text);
+    }
+  });
+
+  function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+      UI.toast('📣 Result copied to clipboard!', 'success');
+      AudioEngine.play('levelUp');
+    });
+  }
+
   /* ════════════════════════════════════════════════════════════════
-     REFERENCE CARD MODAL
+     MODALS
   ════════════════════════════════════════════════════════════════ */
   function openReference() {
     document.getElementById('modal-reference').classList.add('open');
@@ -180,15 +202,12 @@
     if (e.target === e.currentTarget) closeReference();
   });
 
-  /* ════════════════════════════════════════════════════════════════
-     WRONG ANSWER REVIEW MODAL
-  ════════════════════════════════════════════════════════════════ */
   function openWrongAnswerReview(wrongAnswers) {
     const body = document.getElementById('review-body');
     if (!wrongAnswers || wrongAnswers.length === 0) {
       body.innerHTML = '<p style="color:var(--correct);text-align:center;padding:20px">🎉 No mistakes! Perfect round!</p>';
     } else {
-      const OP_NAMES = { bracket:'Brackets',power:'Orders',divide:'Division',multiply:'Multiplication',add:'Addition',subtract:'Subtraction',timeout:'Time ran out' };
+      const OP_NAMES = { bracket:'Brackets',power:'Orders',divide:'Division',multiply:'Multiplication',add:'Addition',subtract:'Subtraction' };
       body.innerHTML = wrongAnswers.map((w, i) => `
         <div class="review-item" style="animation-delay:${i*0.07}s">
           <div class="review-expr">${escapeHtml(w.expressionStr)}</div>
@@ -206,16 +225,13 @@
   document.getElementById('btn-close-review').addEventListener('click', () => {
     document.getElementById('modal-review').classList.remove('open');
   });
-  document.getElementById('modal-review').addEventListener('click', e => {
-    if (e.target === e.currentTarget) document.getElementById('modal-review').classList.remove('open');
-  });
 
   function escapeHtml(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
   /* ════════════════════════════════════════════════════════════════
-     ACHIEVEMENTS SCREEN
+     ACHIEVEMENTS / PROFILE
   ════════════════════════════════════════════════════════════════ */
   document.getElementById('btn-open-achievements').addEventListener('click', () => {
     AudioEngine.play('click');
@@ -229,16 +245,16 @@
   });
 
   function openAchievements() {
-    const all     = Achievements.getAll();
-    const count   = Achievements.getUnlockedCount();
-    const total   = Achievements.getTotalCount();
+    const all = Achievements.getAll();
+    const count = Achievements.getUnlockedCount();
+    const total = Achievements.getTotalCount();
     document.getElementById('ach-count').textContent = count;
     document.getElementById('ach-total').textContent = total;
     document.getElementById('ach-progress-fill').style.width = `${(count/total)*100}%`;
 
     const grid = document.getElementById('ach-grid');
     grid.innerHTML = all.map((a, i) => {
-      const locked    = !a.unlocked;
+      const locked = !a.unlocked;
       const secretHide = locked && a.secret;
       return `
         <div class="ach-card ${a.unlocked ? 'unlocked' : 'locked'}" role="listitem"
@@ -247,14 +263,10 @@
           <span class="ach-title">${secretHide ? '???' : a.title}</span>
           <span class="ach-desc">${secretHide ? 'Secret achievement' : a.desc}</span>
           ${a.unlocked ? '<span class="ach-unlocked-badge">✓</span>' : ''}
-        </div>
-      `;
+        </div>`;
     }).join('');
   }
 
-  /* ════════════════════════════════════════════════════════════════
-     PROFILE SCREEN
-  ════════════════════════════════════════════════════════════════ */
   document.getElementById('btn-open-profile').addEventListener('click', () => {
     AudioEngine.play('click');
     previousScreen = 'intro';
@@ -267,36 +279,45 @@
   });
 
   function openProfile() {
-    const stats    = Profile.get();
-    const name     = Storage.getPlayerName() || 'Player';
-    const bests    = Storage.getAllBests();
-    const maxScore = Math.max(bests.easy || 0, bests.medium || 0, bests.hard || 0, 1);
+    const stats = Profile.get();
+    const rank  = Profile.getRankDetails();
+    const name  = Storage.getPlayerName() || 'Player';
+    const bests = Storage.getAllBests();
+    const maxScore = Math.max(bests.easy||0, bests.medium||0, bests.hard||0, 1);
 
     document.getElementById('profile-name-display').textContent = name;
-    document.getElementById('profile-joined').textContent =
-      'Playing since ' + new Date(stats.joinedAt || Date.now()).toLocaleDateString();
+    document.getElementById('profile-joined').textContent = 'Playing since ' + new Date(stats.joinedAt || Date.now()).toLocaleDateString();
 
-    document.getElementById('pstat-games').textContent    = stats.totalGames || 0;
-    document.getElementById('pstat-correct').textContent  = stats.totalCorrect || 0;
+    document.getElementById('pstat-games').textContent    = stats.totalGames;
+    document.getElementById('pstat-correct').textContent  = stats.totalCorrect;
     document.getElementById('pstat-accuracy').textContent = Profile.getOverallAccuracy() + '%';
     document.getElementById('pstat-avg-score').textContent= Profile.getAverageScore();
-    document.getElementById('pstat-achievements').textContent =
-      `${Achievements.getUnlockedCount()}/${Achievements.getTotalCount()}`;
-    document.getElementById('pstat-hints').textContent    = stats.totalHintsUsed || 0;
+    document.getElementById('pstat-achievements').textContent = Achievements.getUnlockedCount() + '/' + Achievements.getTotalCount();
+    document.getElementById('pstat-hints').textContent    = stats.totalHintsUsed;
 
-    // Level bars
+    // Rank Details
+    document.getElementById('profile-rank-icon').textContent = rank.icon;
+    document.getElementById('profile-rank-name').textContent = rank.name;
+    document.getElementById('profile-level-val').textContent = rank.level;
+    document.getElementById('profile-xp-val').textContent   = `${stats.totalXP} / ${rank.nextRank ? rank.nextRank.minXP : '∞'} XP`;
+    document.getElementById('profile-xp-fill').style.width  = `${rank.progress}%`;
+    document.getElementById('profile-next-rank').textContent = rank.nextRank 
+      ? `Next Rank: ${rank.nextRank.name} (at ${rank.nextRank.minXP} XP)`
+      : '🌟 Max Rank Achieved!';
+
     ['easy','medium','hard'].forEach(lvl => {
       const score = bests[lvl] || 0;
-      document.getElementById(`plv-${lvl}`).textContent = score || '—';
-      document.getElementById(`pbar-${lvl}`).style.width = `${(score/maxScore)*100}%`;
+      const elVal = document.getElementById(`plv-${lvl}`);
+      const elBar = document.getElementById(`pbar-${lvl}`);
+      if (elVal) elVal.textContent = score || '—';
+      if (elBar) elBar.style.width = `${(score/maxScore)*100}%`;
     });
   }
 
   /* ════════════════════════════════════════════════════════════════
-     LEADERBOARD SCREEN
+     LEADERBOARD
   ════════════════════════════════════════════════════════════════ */
   UI.el.btnLeaderboardBack.addEventListener('click', () => { AudioEngine.play('click'); UI.showScreen('intro'); });
-
   UI.el.lbTabs.forEach(tab => {
     tab.addEventListener('click', () => {
       UI.el.lbTabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
@@ -325,70 +346,52 @@
   }
 
   /* ════════════════════════════════════════════════════════════════
-     NEXT STEP BUTTON
+     CORE GAME ENGINE BINDINGS
   ════════════════════════════════════════════════════════════════ */
   UI.el.btnNext.addEventListener('click', () => {
     AudioEngine.play('click');
     UI.hideFeedback();
-    document.getElementById('btn-hint').disabled     = false;
+    document.getElementById('btn-hint').disabled = false;
     document.getElementById('btn-hint').classList.remove('used');
     GameEngine.advanceStep();
   });
 
-  /* ════════════════════════════════════════════════════════════════
-     HINT BUTTON
-  ════════════════════════════════════════════════════════════════ */
   document.getElementById('btn-hint').addEventListener('click', () => {
     const opType = GameEngine.useHint();
     if (!opType) return;
-
     AudioEngine.play('click');
-    document.getElementById('btn-hint').disabled = true;
-    document.getElementById('btn-hint').classList.add('used');
-    document.getElementById('btn-hint').textContent = '💡 Hint used!';
-
-    // Visually highlight the correct choice button briefly
+    const b = document.getElementById('btn-hint');
+    b.disabled = true;
+    b.classList.add('used');
+    b.textContent = '💡 Hint used!';
     const correctBtn = document.querySelector(`.choice-btn[data-op="${opType}"]`);
     if (correctBtn) {
       correctBtn.style.boxShadow = '0 0 25px rgba(245,158,11,0.8)';
       correctBtn.style.borderColor = '#f59e0b';
-      setTimeout(() => {
-        if (correctBtn) {
-          correctBtn.style.boxShadow = '';
-          correctBtn.style.borderColor = '';
-        }
-      }, 2000);
+      setTimeout(() => { if (correctBtn) { correctBtn.style.boxShadow = ''; correctBtn.style.borderColor = ''; } }, 2000);
     }
-
     UI.setScore(GameEngine.getScore());
     Achievements.check({ type: 'hint_used' }, {});
   });
 
-  /* ════════════════════════════════════════════════════════════════
-     START GAME
-  ════════════════════════════════════════════════════════════════ */
   function startGame(level, mode) {
     selectedLevel = level;
     selectedMode  = mode;
     GameEngine.init(level, mode);
 
-    // Reset hint button
     const hintBtn = document.getElementById('btn-hint');
     hintBtn.disabled = false;
     hintBtn.classList.remove('used');
     hintBtn.innerHTML = '💡 Hint <span class="hint-cost">−5 pts</span>';
 
-    // Show/hide HUD elements based on mode
     const timerWrap     = document.getElementById('timer-wrap');
     const challengeWrap = document.getElementById('challenge-timer-wrap');
     const modeBadge     = document.getElementById('hud-mode-badge');
-
     timerWrap.style.display     = mode === 'normal' ? '' : 'none';
     challengeWrap.style.display = mode === 'challenge' ? '' : 'none';
     modeBadge.className = `mode-badge mode-badge-${mode}`;
     modeBadge.textContent = mode === 'practice' ? 'PRACTICE' : mode === 'challenge' ? '⏱️ CHALLENGE' : '';
 
-    // Register game events
     GameEngine.on('questionLoaded', ({ question, index }) => {
       UI.clearHistory();
       UI.renderExpression(question.tokens);
@@ -399,36 +402,22 @@
       renderCurrentStep(question.steps[0]);
     });
 
-    GameEngine.on('timerTick', ({ value, max }) => {
-      UI.setTimer(value, max);
-    });
-
-    GameEngine.on('challengeTick', ({ value, max }) => {
+    GameEngine.on('timerTick', ({ value, max }) => UI.setTimer(value, max));
+    GameEngine.on('challengeTick', ({ value }) => {
       const el = document.getElementById('challenge-timer-val');
-      if (!el) return;
-      el.textContent = value;
-      el.className = 'challenge-timer-val ' + (value > 20 ? 'ok' : value > 10 ? 'warn' : 'danger');
+      if (el) { el.textContent = value; el.className = 'challenge-timer-val ' + (value > 20 ? 'ok' : value > 10 ? 'warn' : 'danger'); }
     });
 
     GameEngine.on('correct', ({ step, earned, streak }) => {
       AudioEngine.play('correct');
-      if (streak >= 3) AudioEngine.play(streak >= 10 ? 'levelUp' : 'levelUp');
-
       UI.disableChoices();
       UI.flashCard('correct');
       UI.animateCorrectGroup(step.correctGroup);
       UI.setScore(GameEngine.getScore());
       UI.setStreak(streak);
-      updateExpressionAfterStep(step);
+      if (step.expressionAfter) UI.appendHistory(GameEngine.getStepIndex() + 1, step.expressionAfter);
       UI.showFeedback({ isCorrect: true, explanation: step.explanation, earned, streak });
-
-      // Achievements
-      Achievements.check({ type: 'correct' }, {
-        timeLeft: GameEngine.getState().timerValue,
-        timerMax: GameEngine.getState().timerMax,
-        streak,
-        consecutiveWrong: GameEngine.getState().consecutiveWrong
-      });
+      Achievements.check({ type: 'correct' }, { timeLeft: GameEngine.getState().timerValue, timerMax: GameEngine.getState().timerMax, streak });
     });
 
     GameEngine.on('wrong', ({ step }) => {
@@ -436,11 +425,10 @@
       UI.disableChoices();
       UI.flashCard('wrong');
       UI.setStreak(0);
-      if (GameEngine.getState().mcfg.livesEnabled) {
-        UI.setLives(GameEngine.getLives(), GameEngine.getState().cfg.livesStart);
-      }
+      if (GameEngine.getState().mcfg.livesEnabled) UI.setLives(GameEngine.getLives(), GameEngine.getState().cfg.livesStart);
       UI.markCorrectChoice(step.correctOpType);
       UI.showFeedback({ isCorrect: false, explanation: step.explanation });
+      vibrate([100, 50, 100]);
     });
 
     GameEngine.on('timeUp', ({ step }) => {
@@ -449,98 +437,44 @@
       UI.flashCard('wrong');
       UI.setStreak(0);
       UI.setLives(GameEngine.getLives(), GameEngine.getState().cfg.livesStart);
-      UI.showFeedback({
-        isTimeUp: true, isCorrect: false,
-        explanation: step ? `Time's up! Correct: ${step.correctGroup?.label} — ${step.correctGroup?.display}. ${step.explanation}` : ''
-      });
-      if (GameEngine.getLives() > 0) {
-        setTimeout(() => {
-          if (!GameEngine.isFinished()) {
-            UI.hideFeedback();
-            GameEngine.advanceStep();
-          }
-        }, 2500);
-      }
-    });
-
-    GameEngine.on('hintUsed', ({ score }) => {
-      UI.setScore(score);
-    });
-
-    GameEngine.on('stepAdvanced', () => {
-      const step = GameEngine.getCurrentStep();
-      if (step) renderCurrentStep(step);
+      UI.showFeedback({ isTimeUp: true, isCorrect: false, explanation: step ? `Time ran out!` : '' });
     });
 
     GameEngine.on('gameOver', async (results) => {
       AudioEngine.play(results.accuracy >= 60 ? 'levelUp' : 'gameOver');
-
-      // Record in profile
       Profile.record({ ...results, mode });
-
-      // Check game-over achievements
-      Achievements.check({ type: 'game_over' }, {
-        ...results, mode, hintsUsed: GameEngine.getHintsUsed()
-      });
-
+      Achievements.check({ type: 'game_over' }, { ...results, mode, hintsUsed: GameEngine.getHintsUsed() });
       const playerName = Storage.getPlayerName() || 'Anonymous';
-
-      // Show "Review Mistakes" button if there are wrong answers
-      const reviewBtn = document.getElementById('btn-review-wrong');
-      reviewBtn.style.display = (results.wrongAnswers && results.wrongAnswers.length > 0) ? '' : 'none';
-
+      document.getElementById('btn-review-wrong').style.display = (results.wrongAnswers?.length > 0) ? '' : 'none';
       setTimeout(() => UI.showResults({ ...results, playerName }), 400);
 
       if (Storage.IS_SERVER) {
         UI.showSubmitSection(playerName);
         try {
-          const response = await Storage.submitScore({
-            name: playerName, score: results.score,
-            level, accuracy: results.accuracy, streak: results.bestStreak
-          });
-          if (response?.success) {
-            UI.updateSubmitStatus(true, response.rank);
-            UI.toast(`🏆 Leaderboard rank: #${response.rank}`, 'success', 3500);
-          } else {
-            UI.updateSubmitStatus(false, null);
-          }
-        } catch (_) { UI.updateSubmitStatus(false, null); }
+          const res = await Storage.submitScore({ name: playerName, score: results.score, level, accuracy: results.accuracy, streak: results.bestStreak });
+          if (res?.success) { UI.updateSubmitStatus(true, res.rank); UI.toast(`🏆 Leaderboard: #${res.rank}`, 'success'); }
+        } catch (_) {}
       } else {
-        Storage.submitScore({
-          name: playerName, score: results.score,
-          level, accuracy: results.accuracy, streak: results.bestStreak
-        });
+        Storage.submitScore({ name: playerName, score: results.score, level, accuracy: results.accuracy, streak: results.bestStreak });
       }
     });
 
-    /* ── Initial HUD ──────────────────────────────────────────── */
-    const cfg = GameEngine.getState().cfg;
+    const c = GameEngine.getState().cfg;
     UI.setHudLevel(level);
     UI.setScore(0);
-    UI.setLives(mode === 'normal' ? cfg.livesStart : 99, mode === 'normal' ? cfg.livesStart : 99);
+    UI.setLives(mode === 'normal' ? c.livesStart : 99, mode === 'normal' ? c.livesStart : 99);
     UI.setStreak(0);
-    UI.setTimer(mode === 'normal' ? cfg.timerMax : 0, mode === 'normal' ? cfg.timerMax : 0);
-    UI.setProgress(0, cfg.questions);
-
+    UI.setTimer(mode === 'normal' ? c.timerMax : 0, mode === 'normal' ? c.timerMax : 0);
     UI.showScreen('game');
     GameEngine.start();
   }
 
-  /* ════════════════════════════════════════════════════════════════
-     RENDER CURRENT STEP + HELPERS
-  ════════════════════════════════════════════════════════════════ */
   function renderCurrentStep(step) {
     UI.highlightPill(step.correctOpType);
-    UI.renderChoices(step.groups, (chosenOpType, btn) => {
-      GameEngine.submitAnswer(chosenOpType);
-      const isCorrect = QuestionGenerator.PRIORITY[chosenOpType] === QuestionGenerator.PRIORITY[step.correctOpType];
-      UI.markChoiceResult(btn, isCorrect);
+    UI.renderChoices(step.groups, (type, btn) => {
+      GameEngine.submitAnswer(type);
+      UI.markChoiceResult(btn, QuestionGenerator.PRIORITY[type] === QuestionGenerator.PRIORITY[step.correctOpType]);
     });
-  }
-
-  function updateExpressionAfterStep(step) {
-    const stepNum = GameEngine.getStepIndex() + 1;
-    if (step.expressionAfter) UI.appendHistory(stepNum, step.expressionAfter);
   }
 
 })();
