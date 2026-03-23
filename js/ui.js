@@ -252,8 +252,16 @@ const UI = (() => {
   }
 
   /* ══════════════════════════════════════════════════════════════
-     CHOICE BUTTONS
-  ══════════════════════════════════════════════════════════════ */
+  /* All 6 BODMAS operation types used to generate distractors */
+  const ALL_OP_DEFS = [
+    { opType: 'bracket',  label: 'Brackets',       display: '(  )'   },
+    { opType: 'power',    label: 'Orders',          display: 'x²'     },
+    { opType: 'divide',   label: 'Division',        display: 'a ÷ b'  },
+    { opType: 'multiply', label: 'Multiplication',  display: 'a × b'  },
+    { opType: 'add',      label: 'Addition',        display: 'a + b'  },
+    { opType: 'subtract', label: 'Subtraction',     display: 'a − b'  },
+  ];
+
   function renderChoices(groups, onChoose) {
     el.choicesGrid.innerHTML = '';
     hideFeedback();
@@ -266,7 +274,17 @@ const UI = (() => {
       return true;
     });
 
-    // Shuffle choices so correct isn't always first
+    // ── Always pad to exactly 4 choices with BODMAS distractors ──
+    const existingTypes = new Set(unique.map(g => g.opType));
+    const available = ALL_OP_DEFS
+      .filter(op => !existingTypes.has(op.opType))
+      .sort(() => Math.random() - 0.5); // shuffle distractors
+
+    while (unique.length < 4 && available.length > 0) {
+      unique.push({ ...available.shift(), isDistractor: true });
+    }
+
+    // Shuffle all 4 choices so correct isn't predictable
     const shuffled = [...unique].sort(() => Math.random() - 0.5);
 
     shuffled.forEach(group => {
@@ -274,13 +292,12 @@ const UI = (() => {
       btn.className   = 'choice-btn';
       btn.dataset.op  = group.opType;
       btn.id          = `choice-${group.opType}`;
-      btn.setAttribute('aria-label', `Choose ${group.label}: ${group.display}`);
+      btn.setAttribute('aria-label', `Choose ${group.label}`);
       btn.innerHTML   = `
         <span class="choice-expr">${group.display}</span>
         <span class="choice-label">${group.label}</span>
       `;
 
-      // Ripple effect on click
       btn.addEventListener('click', e => {
         addRipple(btn, e);
         onChoose(group.opType, btn);
@@ -289,6 +306,7 @@ const UI = (() => {
       el.choicesGrid.appendChild(btn);
     });
   }
+
 
   function disableChoices() {
     el.choicesGrid.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
